@@ -3,10 +3,12 @@ function save_options() {
   var enable = document.getElementById('enable').checked;
   var block_60fps = document.getElementById('block_60fps').checked;
   var battery_only = document.getElementById('battery_only').checked;
+  var av1_only = document.getElementById('av1_only').checked;
   chrome.storage.local.set({
     enable: enable,
     block_60fps: block_60fps,
     battery_only: battery_only,
+    av1_only: av1_only,
   });
 }
 
@@ -17,10 +19,12 @@ function restore_options() {
     enable: true,
     block_60fps: false,
     battery_only: false,
+    av1_only: false,
   }, function(options) {
     document.getElementById('enable').checked = options.enable;
     document.getElementById('block_60fps').checked = options.block_60fps;
     document.getElementById('battery_only').checked = options.battery_only;
+    document.getElementById('av1_only').checked = options.av1_only;
   });
 }
 

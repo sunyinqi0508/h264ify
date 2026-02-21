@@ -12,6 +12,10 @@
     "message": "Povolit h264ify"
   },
 
+  "optionsAv1Only": {
+    "message": "Povolit VP9 a H.264 (blokovat pouze AV1)"
+  },
+
   "optionsBlock60fps": {
     "message": "Blokovat 60fps videa"
   },

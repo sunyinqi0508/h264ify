@@ -12,6 +12,10 @@
     "message": "Enable h264ify"
   },
 
+  "optionsAv1Only": {
+    "message": "Allow VP9 and H.264 (block AV1 only)"
+  },
+
   "optionsBlock60fps": {
     "message": "Block 60fps video"
   },

@@ -22,35 +22,71 @@
  * SOFTWARE.
  */
 
-// This content script runs in an isolated environment and cannot modify any
-// javascript variables on the youtube page. The purpose of this script is to
-// handle user options and pass them them to inject.js via local storage.
-// inject.js runs in the main world of the DOM:
-// https://developer.chrome.com/docs/extensions/reference/api/scripting#type-ExecutionWorld
+// IMPORTANT (Manifest V3):
+// - This script runs in an isolated world and *can* use chrome.* APIs.
+// - The actual codec-spoofing overrides run in src/inject/inject.js, which is
+//   registered as a MAIN-world content script via manifest.json.
+//
+// This file's job is to cache chrome.storage.local options into the page's
+// localStorage so inject.js (which cannot access chrome.storage in MAIN world)
+// can read options synchronously.
 
-// Set defaults for options stored in localStorage
-if (localStorage['h264ify-enable'] === undefined) {
-  localStorage['h264ify-enable'] = true;
-}
-if (localStorage['h264ify-block_60fps'] === undefined) {
-  localStorage['h264ify-block_60fps'] = false;
-}
-if (localStorage['h264ify-battery_only'] === undefined) {
-  localStorage['h264ify-battery_only'] = false;
+function setDefaultIfUndefined(key, value) {
+  if (localStorage[key] === undefined) {
+    localStorage[key] = value;
+  }
 }
 
-// Save chrome.storage.local options in localStorage.
-// This is needed because chrome.storage.local.get() is async and we want to
-// run inject.js immediately.
+function writeOptionsToLocalStorage(options) {
+  // Persist as strings (localStorage only stores strings).
+  localStorage['h264ify-enable'] = options.enable;
+  localStorage['h264ify-block_60fps'] = options.block_60fps;
+  localStorage['h264ify-battery_only'] = options.battery_only;
+  // When true, allow VP9+H.264, but block AV1.
+  localStorage['h264ify-av1_only'] = options.av1_only;
+}
+
+// Set defaults for options stored in localStorage.
+// This makes inject.js behave deterministically at document_start.
+setDefaultIfUndefined('h264ify-enable', true);
+setDefaultIfUndefined('h264ify-block_60fps', false);
+setDefaultIfUndefined('h264ify-battery_only', false);
+setDefaultIfUndefined('h264ify-av1_only', false);
+
+// Cache chrome.storage.local options in localStorage.
+// This is needed because chrome.storage.local.get() is async.
 // See https://bugs.chromium.org/p/chromium/issues/detail?id=54257
-chrome.storage.local.get({
-  // Set defaults
-  enable: true,
-  block_60fps: false,
-  battery_only: false,
- }, function(options) {
-   localStorage['h264ify-enable'] = options.enable;
-   localStorage['h264ify-block_60fps'] = options.block_60fps;
-   localStorage['h264ify-battery_only'] = options.battery_only;
- }
+chrome.storage.local.get(
+  {
+    // Defaults
+    enable: true,
+    block_60fps: false,
+    battery_only: false,
+    av1_only: false
+  },
+  function (options) {
+    writeOptionsToLocalStorage(options);
+  }
 );
+
+// Keep localStorage in sync if the user changes options without reloading.
+try {
+  chrome.storage.onChanged.addListener(function (changes, areaName) {
+    if (areaName !== 'local' || !changes) return;
+
+    var updated = {
+      enable: changes.enable ? changes.enable.newValue : undefined,
+      block_60fps: changes.block_60fps ? changes.block_60fps.newValue : undefined,
+      battery_only: changes.battery_only ? changes.battery_only.newValue : undefined,
+      av1_only: changes.av1_only ? changes.av1_only.newValue : undefined
+    };
+
+    // Only write keys that actually changed.
+    if (updated.enable !== undefined) localStorage['h264ify-enable'] = updated.enable;
+    if (updated.block_60fps !== undefined) localStorage['h264ify-block_60fps'] = updated.block_60fps;
+    if (updated.battery_only !== undefined) localStorage['h264ify-battery_only'] = updated.battery_only;
+    if (updated.av1_only !== undefined) localStorage['h264ify-av1_only'] = updated.av1_only;
+  });
+} catch (e) {
+  // Ignore - some browsers may restrict listeners in certain contexts.
+}

@@ -1,9 +1,10 @@
 {
   "name": "h264ify",
-  "version": "2.0.1",
+  "version": "1.2.0",
   "manifest_version": 3,
   "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/erkserkserks/h264ify",
+  "default_locale": "en",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -18,16 +19,27 @@
     "default_title": "h264ify",
     "default_popup": "options.html"
   },
-  "background": {
-    "service_worker": "src/service_worker.js",
-    "type": "module"
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
   },
-  "host_permissions": [
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
         "*://*.youtube.com/*",
         "*://*.youtube-nocookie.com/*",
         "*://*.youtu.be/*"
-  ],
-  "content_scripts": [
+      ],
+      "js": [
+        "src/inject/inject.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
     {
       "matches": [
         "*://*.youtube.com/*",
@@ -40,13 +52,5 @@
       "run_at": "document_start",
       "all_frames": true
     }
-  ],
-  "default_locale": "en",
-  "options_ui": {
-    "page": "options.html"
-  },
-  "permissions": [
-    "scripting",
-    "storage"
   ]
 }
